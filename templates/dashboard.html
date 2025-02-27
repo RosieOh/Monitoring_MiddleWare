@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>시스템 모니터링 대시보드</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="header">
+        <h1>시스템 모니터링 대시보드</h1>
+        <button id="exportButton" class="export-button">엑셀 내보내기</button>
+    </div>
+    <div class="dashboard">
+        <div class="card">
+            <h2>CPU 사용률</h2>
+            <div class="metric-value" id="cpu-value">0%</div>
+            <canvas id="cpuChart"></canvas>
+        </div>
+        <div class="card">
+            <h2>메모리 사용률</h2>
+            <div class="metric-value" id="memory-value">0%</div>
+            <canvas id="memoryChart"></canvas>
+        </div>
+        <div class="card">
+            <h2>디스크 I/O (읽기)</h2>
+            <div class="metric-value" id="disk-read">0 IOPS</div>
+            <canvas id="diskReadChart"></canvas>
+        </div>
+        <div class="card">
+            <h2>디스크 I/O (쓰기)</h2>
+            <div class="metric-value" id="disk-write">0 IOPS</div>
+            <canvas id="diskWriteChart"></canvas>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html> 
