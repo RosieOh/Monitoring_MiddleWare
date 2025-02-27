@@ -1,11 +1,19 @@
-from flask import Flask, jsonify
-from flask_cors import CORS
-import psutil
 import time
 from datetime import datetime
 
+import psutil
+from flask import Flask, jsonify
+from flask_cors import CORS
+
 app = Flask(__name__)
-CORS(app)
+# 모든 도메인에서의 접근을 허용하되, 특정 메서드만 허용
+CORS(app, resources={
+    r"/api/*": {
+        "origins": "*",                     # 실제 운영환경에서는 특정 도메인으로 제한하는 것이 좋습니다
+        "methods": ["GET"],                 # GET 메서드만 허용
+        "allow_headers": ["Content-Type"]
+    }
+})
 
 last_disk_io = psutil.disk_io_counters()
 last_disk_time = time.time()
@@ -116,4 +124,5 @@ def get_metrics():
         }), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5001)
+    # 개발 환경
+    app.run(host='0.0.0.0', port=5001, debug=False)
