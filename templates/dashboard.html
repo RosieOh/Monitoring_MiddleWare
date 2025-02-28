@@ -1,38 +1,65 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <title>시스템 모니터링 대시보드</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body>
-    <div class="header">
-        <h1>시스템 모니터링 대시보드</h1>
-        <button id="exportButton" class="export-button">엑셀 내보내기</button>
-    </div>
-    <div class="dashboard">
-        <div class="card">
-            <h2>CPU 사용률</h2>
-            <div class="metric-value" id="cpu-value">0%</div>
+{% extends "base.html" %}
+
+{% block title %}대시보드 - 시스템 모니터링{% endblock %}
+
+{% block header %}
+<div class="flex justify-between items-center">
+    <h1 class="text-3xl font-bold text-gray-900">시스템 모니터링 대시보드</h1>
+    <button id="exportButton" 
+            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+        엑셀 내보내기
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- CPU Card -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold text-gray-800">CPU 사용률</h2>
+            <div id="cpu-value" class="text-2xl font-bold text-blue-600">0%</div>
+        </div>
+        <div class="h-64">
             <canvas id="cpuChart"></canvas>
         </div>
-        <div class="card">
-            <h2>메모리 사용률</h2>
-            <div class="metric-value" id="memory-value">0%</div>
+    </div>
+
+    <!-- Memory Card -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold text-gray-800">메모리 사용률</h2>
+            <div id="memory-value" class="text-2xl font-bold text-green-600">0%</div>
+        </div>
+        <div class="h-64">
             <canvas id="memoryChart"></canvas>
         </div>
-        <div class="card">
-            <h2>디스크 I/O (읽기)</h2>
-            <div class="metric-value" id="disk-read">0 IOPS</div>
+    </div>
+
+    <!-- Disk Read Card -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold text-gray-800">디스크 I/O (읽기)</h2>
+            <div id="disk-read" class="text-2xl font-bold text-purple-600">0 IOPS</div>
+        </div>
+        <div class="h-64">
             <canvas id="diskReadChart"></canvas>
         </div>
-        <div class="card">
-            <h2>디스크 I/O (쓰기)</h2>
-            <div class="metric-value" id="disk-write">0 IOPS</div>
+    </div>
+
+    <!-- Disk Write Card -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold text-gray-800">디스크 I/O (쓰기)</h2>
+            <div id="disk-write" class="text-2xl font-bold text-orange-600">0 IOPS</div>
+        </div>
+        <div class="h-64">
             <canvas id="diskWriteChart"></canvas>
         </div>
     </div>
-    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
-</body>
-</html> 
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %} 
