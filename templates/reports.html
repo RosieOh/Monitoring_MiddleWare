@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}리포트 - 시스템 모니터링{% endblock %}
+
+{% block header %}
+<div class="flex justify-between items-center">
+    <h1 class="text-3xl font-bold text-gray-900">시스템 리포트</h1>
+    <button id="generateReportBtn" 
+            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+        새 리포트 생성
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Filters -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-2">
+                <label class="block text-sm font-medium text-gray-700">날짜 선택</label>
+                <input type="date" id="dateFilter" 
+                       class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+            <div class="space-y-2">
+                <label class="block text-sm font-medium text-gray-700">리포트 유형</label>
+                <select id="reportType" 
+                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <option value="daily">일간 리포트</option>
+                    <option value="weekly">주간 리포트</option>
+                    <option value="monthly">월간 리포트</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reports List -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-4 py-5 sm:p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">생성된 리포트</h3>
+            <div id="reportsList" class="space-y-4">
+                <!-- Reports will be dynamically loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/reports.js') }}"></script>
+{% endblock %} 
