@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}서버 관리 - 시스템 모니터링 플랫폼{% endblock %}
+
+{% block content %}
+<div class="header">
+    <h1>서버 관리</h1>
+    <button class="add-server-btn">새 서버 추가</button>
+</div>
+<div class="servers-grid">
+    <div class="server-filters">
+        <input type="text" placeholder="서버 검색..." class="search-input">
+        <select class="filter-select">
+            <option value="all">모든 유형</option>
+            <option value="physical">물리 서버</option>
+            <option value="virtual">가상 서버</option>
+        </select>
+    </div>
+    <div class="servers-list">
+        <!-- 서버 목록은 JavaScript로 동적 로드 -->
+    </div>
+</div>
+
+<!-- 서버 추가 모달 -->
+<div id="addServerModal" class="modal">
+    <div class="modal-content">
+        <h2>새 서버 추가</h2>
+        <form id="addServerForm">
+            <input type="text" name="name" placeholder="서버 이름" required>
+            <input type="text" name="host" placeholder="호스트 주소" required>
+            <select name="type">
+                <option value="physical">물리 서버</option>
+                <option value="virtual">가상 서버</option>
+            </select>
+            <button type="submit">추가</button>
+        </form>
+    </div>
+</div>
+{% endblock %} 
