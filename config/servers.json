@@ -1,0 +1,12 @@
+{
+    "local": {
+        "name": "Local Server",
+        "host": "localhost",
+        "type": "physical"
+    },
+    "server1": {
+        "name": "가상환경 Linux 서버 ",
+        "host": "192.168.1.100",
+        "type": "virtual"
+    }
+} 
