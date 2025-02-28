@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}알림 센터 - 시스템 모니터링 플랫폼{% endblock %}
+
+{% block content %}
+<div class="header">
+    <h1>알림 센터</h1>
+    <div class="header-actions">
+        <button class="settings-btn">알림 설정</button>
+    </div>
+</div>
+<div class="alerts-container">
+    <div class="alerts-filters">
+        <select class="severity-filter">
+            <option value="all">모든 심각도</option>
+            <option value="high">높음</option>
+            <option value="medium">중간</option>
+            <option value="low">낮음</option>
+        </select>
+        <select class="type-filter">
+            <option value="all">모든 유형</option>
+            <option value="cpu">CPU</option>
+            <option value="memory">메모리</option>
+            <option value="disk">디스크</option>
+        </select>
+    </div>
+    <div class="alerts-list">
+        <!-- 알림 목록은 JavaScript로 동적 로드 -->
+    </div>
+</div>
+{% endblock %} 
