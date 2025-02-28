@@ -1,68 +1,66 @@
+import json
 import logging
 import platform
 import signal
 import subprocess
 import sys
+from pathlib import Path
 from time import sleep
 
-# 로깅 설정
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('monitor.log'),
-        logging.StreamHandler()
-    ]
-)
 
-def signal_handler(signum, frame):
-    logging.info("모니터링을 종료합니다.")
-    sys.exit(0)
+class MonitoringSystem:
+    def __init__(self):
+        self.setup_logging()
+        self.load_config()
+        self.processes = {}
 
-def is_process_running(process_name):
-    try:
-        # macOS에서 실행 중인 파이썬 프로세스 확인
-        cmd = ['pgrep', '-f', process_name]
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        return bool(result.stdout.strip())
-    except Exception as e:
-        logging.error(f"프로세스 확인 중 오류 발생: {str(e)}")
-        return False
+    def setup_logging(self):
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler('logs/monitor.log'),
+                logging.StreamHandler()
+            ]
+        )
 
-def start_process(process_name):
-    try:
-        subprocess.Popen(['python3', process_name])
-        logging.info(f"{process_name} 프로세스를 시작했습니다.")
-        return True
-    except Exception as e:
-        logging.error(f"프로세스 시작 중 오류 발생: {str(e)}")
-        return False
+    def load_config(self):
+        try:
+            with open('config/monitoring_config.json', 'r') as f:
+                self.config = json.load(f)
+        except FileNotFoundError:
+            self.config = {
+                'processes': ['Metrics.py'],
+                'check_interval': 5
+            }
 
-def check(process_name):
-    try:
-        if not is_process_running(process_name):
-            logging.warning(f"{process_name} 프로세스가 실행되지 않고 있습니다. 재시작합니다.")
-            start_process(process_name)
-        else:
-            logging.info(f"{process_name} 프로세스가 실행 중입니다.")
-    
-    except Exception as e:
-        logging.error(f"예상치 못한 오류 발생: {str(e)}")
+    def start_process(self, process_name):
+        try:
+            process = subprocess.Popen(['python3', process_name])
+            self.processes[process_name] = process
+            logging.info(f"Started {process_name}")
+        except Exception as e:
+            logging.error(f"Error starting {process_name}: {e}")
+
+    def check_processes(self):
+        for process_name in self.config['processes']:
+            if process_name not in self.processes or self.processes[process_name].poll() is not None:
+                logging.warning(f"Restarting {process_name}")
+                self.start_process(process_name)
+
+    def run(self):
+        signal.signal(signal.SIGINT, self.signal_handler)
+        
+        while True:
+            self.check_processes()
+            sleep(self.config['check_interval'])
+
+    def signal_handler(self, signum, frame):
+        logging.info("Shutting down monitoring system...")
+        for process in self.processes.values():
+            process.terminate()
+        sys.exit(0)
 
 if __name__ == '__main__':
-    # Ctrl+C 시그널 핸들러 등록
-    signal.signal(signal.SIGINT, signal_handler)
-    
-    # 모니터링할 프로세스 이름 (커맨드라인 인자로 받거나 기본값 사용)
-    process_name = sys.argv[1] if len(sys.argv) > 1 else "test_script.py"
-    
-    logging.info(f"모니터링을 시작합니다. 대상 프로세스: {process_name}")
-    
-    # 처음 실행
-    if not is_process_running(process_name):
-        start_process(process_name)
-    
-    # 무한 루프로 실행
-    while True:
-        sleep(5)
-        check(process_name)
+    monitor = MonitoringSystem()
+    monitor.run()
