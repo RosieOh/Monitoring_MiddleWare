@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}성능 분석{% endblock %}
+
+{% block header %}
+<div class="flex justify-between items-center">
+    <h1 class="text-3xl font-bold text-gray-900">시스템 성능 분석</h1>
+    <button id="generateReport" 
+            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+        성능 리포트 생성
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-4">
+    <h1 class="text-2xl font-bold">성능</h1>
+    <button onclick="toggleFullscreen('performance-content')" 
+            class="px-3 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg transition-colors" 
+            title="전체화면">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+        </svg>
+    </button>
+</div>
+<div id="performance-content" class="bg-gray-800 p-6 rounded-lg">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- 성능 점수 -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">시스템 성능 점수</h2>
+            <div class="flex justify-center items-center h-48">
+                <div class="text-center">
+                    <div id="performanceScore" class="text-6xl font-bold text-blue-600">--</div>
+                    <div class="text-gray-500 mt-2">/ 100</div>
+                </div>
+            </div>
+            <div class="mt-4">
+                <div id="scoreBreakdown" class="space-y-2">
+                    <!-- 성능 점수 세부 내역이 여기에 동적으로 로드됩니다 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 병목 현상 분석 -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">병목 현상 분석</h2>
+            <div id="bottlenecks" class="space-y-4">
+                <!-- 병목 현상 분석 결과가 여기에 동적으로 로드됩니다 -->
+            </div>
+        </div>
+
+        <!-- 성능 트렌드 -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">성능 트렌드</h2>
+            <div class="h-64">
+                <canvas id="performanceTrendChart"></canvas>
+            </div>
+        </div>
+
+        <!-- 최적화 추천 -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">성능 최적화 추천</h2>
+            <div id="optimizationRecommendations" class="space-y-4">
+                <!-- 최적화 추천 사항이 여기에 동적으로 로드됩니다 -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/performance.js') }}"></script>
+{% endblock %} 

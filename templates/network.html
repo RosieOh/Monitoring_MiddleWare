@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}네트워크 모니터링{% endblock %}
+
+{% block header %}
+<div class="flex justify-between items-center">
+    <h1 class="text-3xl font-bold text-gray-900">네트워크 모니터링</h1>
+    <div class="flex gap-2">
+        <button onclick="toggleFullscreen('main-content')" 
+                class="px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                title="전체화면">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+            </svg>
+        </button>
+        <button id="runSpeedTest" 
+                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+            속도 테스트 실행
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="main-content" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- 네트워크 트래픽 -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">네트워크 트래픽</h2>
+        <div class="h-64">
+            <canvas id="networkTrafficChart"></canvas>
+        </div>
+    </div>
+
+    <!-- 네트워크 속도 -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">네트워크 속도</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div class="text-center">
+                <p class="text-sm text-gray-600">다운로드</p>
+                <p id="downloadSpeed" class="text-2xl font-semibold text-blue-600">-</p>
+            </div>
+            <div class="text-center">
+                <p class="text-sm text-gray-600">업로드</p>
+                <p id="uploadSpeed" class="text-2xl font-semibold text-green-600">-</p>
+            </div>
+            <div class="text-center">
+                <p class="text-sm text-gray-600">지연시간</p>
+                <p id="pingLatency" class="text-2xl font-semibold text-purple-600">-</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 포트 상태 -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">포트 상태</h2>
+        <div id="portsList" class="space-y-2">
+        </div>
+    </div>
+
+    <!-- 활성 연결 -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">활성 연결</h2>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">로컬 주소</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">원격 주소</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">상태</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">프로세스</th>
+                    </tr>
+                </thead>
+                <tbody id="connectionsList" class="bg-white divide-y divide-gray-200">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 네트워크 인터페이스 -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">네트워크 인터페이스</h2>
+        <div id="interfacesList" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        </div>
+    </div>
+
+    <!-- 지연시간 -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">지연시간</h2>
+        <div class="h-64">
+            <canvas id="latencyChart"></canvas>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Chart.js 라이브러리 추가 -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- 네트워크 모니터링 스크립트 -->
+<script src="{{ url_for('static', filename='js/network.js') }}"></script>
+<script>
+    function toggleFullscreen(elementId) {
+        const element = document.getElementById(elementId);
+        
+        if (!document.fullscreenElement) {
+            if (element.requestFullscreen) {
+                element.requestFullscreen();
+            } else if (element.webkitRequestFullscreen) {
+                element.webkitRequestFullscreen();
+            } else if (element.msRequestFullscreen) {
+                element.msRequestFullscreen();
+            }
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            }
+        }
+    }
+</script>
+{% endblock %} 

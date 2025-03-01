@@ -13,48 +13,61 @@
 {% endblock %}
 
 {% block content %}
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-    <!-- CPU Card -->
-    <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="text-xl font-semibold text-gray-800">CPU 사용률</h2>
-            <div id="cpu-value" class="text-2xl font-bold text-blue-600">0%</div>
+<div class="flex justify-between items-center mb-4">
+    <h1 class="text-2xl font-bold">대시보드</h1>
+    <button onclick="toggleFullscreen('dashboard-content')" 
+            class="px-3 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg transition-colors" 
+            title="전체화면">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+        </svg>
+    </button>
+</div>
+<div id="dashboard-content" class="bg-gray-800 p-6 rounded-lg">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- CPU Card -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold text-gray-800">CPU 사용률</h2>
+                <div id="cpu-value" class="text-2xl font-bold text-blue-600">0%</div>
+            </div>
+            <div class="h-64">
+                <canvas id="cpuChart"></canvas>
+            </div>
         </div>
-        <div class="h-64">
-            <canvas id="cpuChart"></canvas>
-        </div>
-    </div>
 
-    <!-- Memory Card -->
-    <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="text-xl font-semibold text-gray-800">메모리 사용률</h2>
-            <div id="memory-value" class="text-2xl font-bold text-green-600">0%</div>
+        <!-- Memory Card -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold text-gray-800">메모리 사용률</h2>
+                <div id="memory-value" class="text-2xl font-bold text-green-600">0%</div>
+            </div>
+            <div class="h-64">
+                <canvas id="memoryChart"></canvas>
+            </div>
         </div>
-        <div class="h-64">
-            <canvas id="memoryChart"></canvas>
-        </div>
-    </div>
 
-    <!-- Disk Read Card -->
-    <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="text-xl font-semibold text-gray-800">디스크 I/O (읽기)</h2>
-            <div id="disk-read" class="text-2xl font-bold text-purple-600">0 IOPS</div>
+        <!-- Disk Read Card -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold text-gray-800">디스크 I/O (읽기)</h2>
+                <div id="disk-read" class="text-2xl font-bold text-purple-600">0 IOPS</div>
+            </div>
+            <div class="h-64">
+                <canvas id="diskReadChart"></canvas>
+            </div>
         </div>
-        <div class="h-64">
-            <canvas id="diskReadChart"></canvas>
-        </div>
-    </div>
 
-    <!-- Disk Write Card -->
-    <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="text-xl font-semibold text-gray-800">디스크 I/O (쓰기)</h2>
-            <div id="disk-write" class="text-2xl font-bold text-orange-600">0 IOPS</div>
-        </div>
-        <div class="h-64">
-            <canvas id="diskWriteChart"></canvas>
+        <!-- Disk Write Card -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold text-gray-800">디스크 I/O (쓰기)</h2>
+                <div id="disk-write" class="text-2xl font-bold text-orange-600">0 IOPS</div>
+            </div>
+            <div class="h-64">
+                <canvas id="diskWriteChart"></canvas>
+            </div>
         </div>
     </div>
 </div>

@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}AWS 서버 콘솔{% endblock %}
+
+{% block header %}
+<div class="flex justify-between items-center">
+    <h1 class="text-3xl font-bold text-gray-900">AWS 서버 콘솔</h1>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow p-6">
+    <!-- SSH 연결 폼 -->
+    <div class="mb-6 p-4 border rounded">
+        <h2 class="text-lg font-semibold mb-4">서버 연결</h2>
+        <div class="grid grid-cols-1 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">호스트명</label>
+                <input type="text" id="hostname" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">사용자명</label>
+                <input type="text" id="username" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">키 파일 경로</label>
+                <input type="text" id="key-path" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+            </div>
+            <button onclick="connectToServer()" 
+                    class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                연결
+            </button>
+        </div>
+    </div>
+
+    <!-- 콘솔 출력 -->
+    <div id="console-output" class="bg-black text-green-400 p-4 rounded h-96 overflow-y-auto font-mono text-sm mb-4">
+    </div>
+    
+    <!-- 명령어 입력 -->
+    <div class="flex space-x-2">
+        <input type="text" id="console-input" 
+               class="flex-1 border rounded p-2 font-mono text-sm"
+               placeholder="명령어를 입력하세요..."
+               onkeypress="handleKeyPress(event)">
+        <button onclick="sendCommand()" 
+                class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+            실행
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<script>
+const socket = io();
+const consoleOutput = document.getElementById('console-output');
+const consoleInput = document.getElementById('console-input');
+
+socket.on('console_output', function(data) {
+    const output = document.createElement('div');
+    output.textContent = data.output;
+    consoleOutput.appendChild(output);
+    consoleOutput.scrollTop = consoleOutput.scrollHeight;
+});
+
+function connectToServer() {
+    const hostname = document.getElementById('hostname').value;
+    const username = document.getElementById('username').value;
+    const keyPath = document.getElementById('key-path').value;
+    
+    socket.emit('connect_ssh', {
+        hostname: hostname,
+        username: username,
+        key_path: keyPath
+    });
+}
+
+function sendCommand() {
+    const command = consoleInput.value;
+    if (command) {
+        socket.emit('execute_command', {command: command});
+        consoleInput.value = '';
+        
+        // 입력한 명령어 표시
+        const cmdLine = document.createElement('div');
+        cmdLine.textContent = '$ ' + command;
+        cmdLine.className = 'text-blue-400';
+        consoleOutput.appendChild(cmdLine);
+    }
+}
+
+function handleKeyPress(event) {
+    if (event.key === 'Enter') {
+        sendCommand();
+    }
+}
+</script>
+{% endblock %} 

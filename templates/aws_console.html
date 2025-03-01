@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}AWS 서버 콘솔{% endblock %}
+
+{% block header_title %}AWS 서버 콘솔{% endblock %}
+
+{% block content %}
+<div class="card p-6">
+    <!-- SSH 연결 폼 -->
+    <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">AWS 서버 연결</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">EC2 호스트명 또는 IP</label>
+                <input type="text" id="hostname" 
+                       placeholder="예: ec2-xx-xx-xx-xx.compute-1.amazonaws.com" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">사용자명</label>
+                <input type="text" id="username" 
+                       placeholder="예: ec2-user 또는 ubuntu" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">키 파일(.pem) 경로</label>
+                <input type="text" id="key-path" 
+                       placeholder="예: /path/to/your/key.pem" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+        </div>
+        <button onclick="connectToServer()" 
+                class="mt-4 w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
+            AWS 서버 연결
+        </button>
+    </div>
+
+    <!-- 콘솔 출력 -->
+    <div id="console-output" 
+         class="font-mono text-sm bg-gray-900 text-green-400 p-4 rounded-lg h-96 overflow-y-auto mb-4"
+         style="font-family: 'Courier New', Courier, monospace;">
+        AWS 서버에 연결하려면 위의 정보를 입력하고 '연결' 버튼을 클릭하세요.
+    </div>
+    
+    <!-- 명령어 입력 -->
+    <div class="flex space-x-2">
+        <input type="text" id="console-input" 
+               class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 font-mono"
+               placeholder="AWS 서버에서 실행할 명령어를 입력하세요..."
+               onkeypress="handleKeyPress(event)">
+        <button onclick="sendCommand()" 
+                class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+            실행
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<script>
+const socket = io();
+const consoleOutput = document.getElementById('console-output');
+const consoleInput = document.getElementById('console-input');
+
+socket.on('console_output', function(data) {
+    const output = document.createElement('div');
+    output.textContent = data.output;
+    consoleOutput.appendChild(output);
+    consoleOutput.scrollTop = consoleOutput.scrollHeight;
+});
+
+function connectToServer() {
+    const hostname = document.getElementById('hostname').value;
+    const username = document.getElementById('username').value;
+    const keyPath = document.getElementById('key-path').value;
+    
+    if (!hostname || !username || !keyPath) {
+        alert('모든 필드를 입력해주세요.');
+        return;
+    }
+    
+    socket.emit('connect_ssh', {
+        hostname: hostname,
+        username: username,
+        key_path: keyPath
+    });
+}
+
+function sendCommand() {
+    const command = consoleInput.value;
+    if (command) {
+        socket.emit('execute_command', {command: command});
+        consoleInput.value = '';
+        
+        // 입력한 명령어 표시
+        const cmdLine = document.createElement('div');
+        cmdLine.textContent = '$ ' + command;
+        cmdLine.className = 'text-blue-400';
+        consoleOutput.appendChild(cmdLine);
+    }
+}
+
+function handleKeyPress(event) {
+    if (event.key === 'Enter') {
+        sendCommand();
+    }
+}
+</script>
+{% endblock %} 

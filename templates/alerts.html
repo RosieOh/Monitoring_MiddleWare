@@ -1,31 +1,81 @@
 {% extends "base.html" %}
 
-{% block title %}알림 센터 - 시스템 모니터링 플랫폼{% endblock %}
+{% block title %}알림 설정{% endblock %}
+
+{% block header %}
+<div class="flex justify-between items-center">
+    <h1 class="text-3xl font-bold text-gray-900">알림 설정</h1>
+    <button id="testAlert" 
+            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+        테스트 알림 전송
+    </button>
+</div>
+{% endblock %}
 
 {% block content %}
-<div class="header">
-    <h1>알림 센터</h1>
-    <div class="header-actions">
-        <button class="settings-btn">알림 설정</button>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- 알림 설정 -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">알림 임계값 설정</h2>
+        <form id="alertSettingsForm" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">CPU 사용률 임계값 (%)</label>
+                <input type="number" 
+                       name="cpuThreshold" 
+                       min="0" 
+                       max="100" 
+                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">메모리 사용률 임계값 (%)</label>
+                <input type="number" 
+                       name="memoryThreshold" 
+                       min="0" 
+                       max="100" 
+                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">디스크 사용률 임계값 (%)</label>
+                <input type="number" 
+                       name="diskThreshold" 
+                       min="0" 
+                       max="100" 
+                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">알림 채널</label>
+                <div class="mt-2 space-y-2">
+                    <div class="flex items-center">
+                        <input type="checkbox" 
+                               name="emailAlerts" 
+                               class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                        <label class="ml-2 text-sm text-gray-700">이메일</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" 
+                               name="slackAlerts" 
+                               class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                        <label class="ml-2 text-sm text-gray-700">Slack</label>
+                    </div>
+                </div>
+            </div>
+            <button type="submit" 
+                    class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                설정 저장
+            </button>
+        </form>
+    </div>
+
+    <!-- 알림 히스토리 -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">알림 히스토리</h2>
+        <div class="space-y-4" id="alertHistory">
+            <!-- 알림 히스토리가 여기에 동적으로 로드됩니다 -->
+        </div>
     </div>
 </div>
-<div class="alerts-container">
-    <div class="alerts-filters">
-        <select class="severity-filter">
-            <option value="all">모든 심각도</option>
-            <option value="high">높음</option>
-            <option value="medium">중간</option>
-            <option value="low">낮음</option>
-        </select>
-        <select class="type-filter">
-            <option value="all">모든 유형</option>
-            <option value="cpu">CPU</option>
-            <option value="memory">메모리</option>
-            <option value="disk">디스크</option>
-        </select>
-    </div>
-    <div class="alerts-list">
-        <!-- 알림 목록은 JavaScript로 동적 로드 -->
-    </div>
-</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/alerts.js') }}"></script>
 {% endblock %} 
