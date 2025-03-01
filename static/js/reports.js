@@ -1,88 +1,104 @@
 document.addEventListener('DOMContentLoaded', function() {
-    const generateReportBtn = document.getElementById('generateReportBtn');
-    const dateFilter = document.getElementById('dateFilter');
-    const reportType = document.getElementById('reportType');
-    const reportsList = document.getElementById('reportsList');
+    const reportList = document.getElementById('reportList');
+    const generateReportBtn = document.getElementById('generateReport');
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
+    const reportTypeSelect = document.getElementById('reportType');
 
-    // 오늘 날짜를 기본값으로 설정
-    dateFilter.valueAsDate = new Date();
+    // 날짜 입력 필드 초기값 설정
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    startDateInput.value = sevenDaysAgo.toISOString().split('T')[0];
+    endDateInput.value = now.toISOString().split('T')[0];
 
-    // 리포트 생성 버튼 클릭 이벤트
-    generateReportBtn.addEventListener('click', async () => {
-        const date = dateFilter.value;
-        const type = reportType.value;
-        
-        try {
-            const response = await fetch('/api/generate-report', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    date: date,
-                    type: type
-                })
+    function loadReports() {
+        fetch('/api/reports/list')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    reportList.innerHTML = data.reports.map(report => {
+                        const baseFilename = report.filename.split('.')[0];
+                        return `
+                            <div class="bg-white p-6 rounded-lg shadow mb-4">
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <h3 class="text-lg font-medium text-gray-900">
+                                            ${report.type} 리포트
+                                        </h3>
+                                        <p class="text-sm text-gray-500">
+                                            생성일: ${new Date(report.timestamp).toLocaleString()}
+                                        </p>
+                                        <p class="text-sm text-gray-500">
+                                            기간: ${new Date(report.period.start).toLocaleDateString()} - 
+                                                  ${new Date(report.period.end).toLocaleDateString()}
+                                        </p>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <a href="/api/reports/download/${baseFilename}.json" 
+                                           class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                            JSON
+                                        </a>
+                                        <a href="/api/reports/download/${baseFilename}.xlsx" 
+                                           class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                                            Excel
+                                        </a>
+                                        <button onclick="deleteReport('${baseFilename}')"
+                                                class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                                            삭제
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    reportList.innerHTML = '<p class="text-gray-500">리포트가 없습니다.</p>';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                reportList.innerHTML = '<p class="text-red-500">리포트 목록을 불러오는데 실패했습니다.</p>';
             });
+    }
 
-            if (!response.ok) {
-                throw new Error('리포트 생성 실패');
+    generateReportBtn.addEventListener('click', function() {
+        // 버튼 비활성화 및 로딩 상태 표시
+        this.disabled = true;
+        const originalText = this.textContent;
+        this.textContent = '생성 중...';
+
+        const data = {
+            start_date: startDateInput.value,
+            end_date: endDateInput.value,
+            type: reportTypeSelect.value
+        };
+
+        fetch('/api/reports/generate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                alert('리포트가 생성되었습니다.');
+                loadReports();  // 리포트 목록 새로고침
+            } else {
+                alert('리포트 생성 실패: ' + (result.message || '알 수 없는 오류가 발생했습니다.'));
             }
-
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `system_report_${type}_${date}.csv`;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            a.remove();
-
-            // 리포트 목록 업데이트
-            loadReports();
-        } catch (error) {
+        })
+        .catch(error => {
             console.error('Error:', error);
-            alert('리포트 생성에 실패했습니다.');
-        }
+            alert('리포트 생성 중 오류가 발생했습니다.');
+        })
+        .finally(() => {
+            // 버튼 상태 복원
+            this.disabled = false;
+            this.textContent = originalText;
+        });
     });
-
-    // 리포트 목록 로드 함수
-    async function loadReports() {
-        try {
-            const response = await fetch('/api/reports');
-            if (!response.ok) {
-                throw new Error('리포트 목록 로드 실패');
-            }
-
-            const reports = await response.json();
-            displayReports(reports);
-        } catch (error) {
-            console.error('Error:', error);
-            reportsList.innerHTML = '<p class="error">리포트 목록을 불러올 수 없습니다.</p>';
-        }
-    }
-
-    // 리포트 목록 표시 함수
-    function displayReports(reports) {
-        if (reports.length === 0) {
-            reportsList.innerHTML = '<p>생성된 리포트가 없습니다.</p>';
-            return;
-        }
-
-        const html = reports.map(report => `
-            <div class="report-item">
-                <div class="report-info">
-                    <h3>${report.type} 리포트</h3>
-                    <p>생성일: ${report.created_at}</p>
-                </div>
-                <div class="report-actions">
-                    <button onclick="downloadReport('${report.id}')" class="download-btn">다운로드</button>
-                </div>
-            </div>
-        `).join('');
-
-        reportsList.innerHTML = html;
-    }
 
     // 초기 리포트 목록 로드
     loadReports();
@@ -108,5 +124,26 @@ async function downloadReport(reportId) {
     } catch (error) {
         console.error('Error:', error);
         alert('리포트 다운로드에 실패했습니다.');
+    }
+}
+
+function deleteReport(filename) {
+    if (confirm('이 리포트를 삭제하시겠습니까?')) {
+        fetch(`/api/reports/delete/${filename}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                alert('리포트가 삭제되었습니다.');
+                loadReports();  // 리포트 목록 새로고침
+            } else {
+                alert('리포트 삭제 실패: ' + (result.message || '알 수 없는 오류가 발생했습니다.'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('리포트 삭제 중 오류가 발생했습니다.');
+        });
     }
 } 
