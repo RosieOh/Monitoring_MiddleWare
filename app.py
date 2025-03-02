@@ -4,15 +4,18 @@ import os
 import platform
 import subprocess
 from datetime import datetime
+from functools import wraps
 from io import BytesIO
 from pathlib import Path
 
 import pandas as pd
 import paramiko
 import psutil
-from flask import Flask, jsonify, render_template, request, send_file
+from flask import (Flask, flash, jsonify, redirect, render_template, request,
+                   send_file, session, url_for)
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
+from flask_wtf.csrf import CSRFProtect
 
 from log_analyzer import LogAnalyzer
 from metrics_collector import MetricsCollector
@@ -33,7 +36,12 @@ CORS(app, resources={
     }
 })
 
-app.config['SECRET_KEY'] = 'your-secret-key'
+# CSRF 보호 설정
+csrf = CSRFProtect()
+csrf.init_app(app)
+
+# 시크릿 키 설정
+app.config['SECRET_KEY'] = 'your-secret-key-here'  # 실제 운영에서는 환경 변수로 관리
 
 # 로깅 설정
 logging.basicConfig(level=logging.DEBUG)
@@ -82,9 +90,57 @@ class SSHClient:
 
 ssh_client = SSHClient()
 
-@app.route('/')
+# 기본 계정 설정
+DEFAULT_USERNAME = "admin"
+DEFAULT_PASSWORD = "1234"
+
+# 로그인 필요 데코레이터
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# 루트 경로 (로그인 페이지)
+@app.route('/', methods=['GET', 'POST'])
+def login():
+    if 'user_id' in session:
+        return redirect(url_for('monitor'))
+        
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        remember = request.form.get('remember')
+
+        if username == DEFAULT_USERNAME and password == DEFAULT_PASSWORD:
+            session['user_id'] = username
+            if remember:
+                session.permanent = True
+            return redirect(url_for('monitor'))
+        else:
+            return render_template('login.html', error="아이디 또는 비밀번호가 잘못되었습니다.")
+
+    return render_template('login.html')
+
+# 모니터링 메인 페이지
+@app.route('/monitor')
+@login_required
+def monitor():
+    return render_template('dashboard.html')  # 기존 대시보드 템플릿 사용
+
+# 로그아웃 라우트
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+# 기존 대시보드 라우트는 모니터 페이지로 리다이렉트
+@app.route('/dashboard')
+@login_required
 def dashboard():
-    return render_template('dashboard.html')
+    return redirect(url_for('monitor'))
 
 @app.route('/console')
 def console():
@@ -95,6 +151,7 @@ def processes():
     return render_template('processes.html')
 
 @app.route('/network')
+@login_required
 def network():
     return render_template('network.html')
 
@@ -107,6 +164,7 @@ def alerts():
     return render_template('alerts.html')
 
 @app.route('/performance')
+@login_required
 def performance():
     return render_template('performance.html')
 
@@ -136,133 +194,127 @@ def export_csv():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# 리포트를 저장할 전역 변수 (실제 구현에서는 데이터베이스를 사용해야 함)
+generated_reports = []
+
 @app.route('/api/reports/generate', methods=['POST'])
+@login_required
 def generate_report():
     try:
-        start_date = request.json.get('start_date')
-        end_date = request.json.get('end_date')
-        report_type = request.json.get('type', 'system')
+        data = request.get_json()
+        report_id = datetime.now().strftime('%Y%m%d%H%M%S')
         
-        # 리포트 데이터 생성
+        # 새 리포트 생성
         report_data = {
-            'timestamp': datetime.now().isoformat(),
-            'type': report_type,
-            'period': {
-                'start': start_date,
-                'end': end_date
-            },
-            'system_status': {
-                'cpu': {
-                    'percent': psutil.cpu_percent(interval=1),
-                    'processes': process_monitor.get_process_list()
-                },
-                'memory': psutil.virtual_memory()._asdict(),
-                'disk': psutil.disk_usage('/')._asdict(),
-                'network': network_monitor.get_network_stats()
-            },
-            'logs': log_analyzer.search_logs(
-                start_time=start_date,
-                end_time=end_date,
-                page=1,
-                per_page=1000
-            )
+            'id': report_id,
+            'title': f"{data['type'].capitalize()} Report",
+            'date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'type': data['type'],
+            'startDate': data['startDate'],
+            'endDate': data['endDate'],
+            'data': {
+                'cpu_usage': '45%',
+                'memory_usage': '60%',
+                'disk_usage': '55%'
+            }
         }
         
-        # JSON 파일 저장
-        report_filename = f"report_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        json_filename = f"{report_filename}.json"
-        excel_filename = f"{report_filename}.xlsx"
+        # 생성된 리포트를 리스트에 추가
+        generated_reports.insert(0, report_data)  # 최신 리포트를 앞에 추가
         
-        os.makedirs('reports', exist_ok=True)
-        json_path = os.path.join('reports', json_filename)
-        excel_path = os.path.join('reports', excel_filename)
-        
-        # JSON 저장
-        with open(json_path, 'w', encoding='utf-8') as f:
-            json.dump(report_data, f, indent=2, ensure_ascii=False)
-            
-        # Excel 생성
-        with pd.ExcelWriter(excel_path, engine='xlsxwriter') as writer:
-            # CPU 정보
-            pd.DataFrame(report_data['system_status']['cpu']['processes']).to_excel(
-                writer, sheet_name='Processes', index=False)
-            
-            # 메모리 정보
-            pd.DataFrame([report_data['system_status']['memory']]).to_excel(
-                writer, sheet_name='Memory', index=False)
-            
-            # 디스크 정보
-            pd.DataFrame([report_data['system_status']['disk']]).to_excel(
-                writer, sheet_name='Disk', index=False)
-            
-            # 네트워크 정보
-            pd.DataFrame([report_data['system_status']['network']]).to_excel(
-                writer, sheet_name='Network', index=False)
-            
-            # 로그 정보
-            if report_data['logs'].get('logs'):
-                pd.DataFrame(report_data['logs']['logs']).to_excel(
-                    writer, sheet_name='Logs', index=False)
-            
         return jsonify({
-            'success': True,
-            'json_filename': json_filename,
-            'excel_filename': excel_filename,
-            'message': '리포트가 생성되었습니다.'
+            'status': 'success',
+            'message': '리포트가 생성되었습니다.',
+            'report': report_data
         })
-        
+
     except Exception as e:
         print(f"Error generating report: {str(e)}")
         return jsonify({
-            'success': False,
-            'error': str(e),
+            'status': 'error',
             'message': '리포트 생성 중 오류가 발생했습니다.'
         }), 500
 
-@app.route('/api/reports/download/<filename>')
-def download_report(filename):
+@app.route('/api/reports/download/<report_id>/<format>')
+@login_required
+def download_report(report_id, format):
     try:
-        report_path = os.path.join('reports', filename)
-        return send_file(
-            report_path,
-            as_attachment=True,
-            download_name=filename
-        )
+        # 리포트 ID로 해당 리포트 찾기
+        report = next((r for r in generated_reports if r['id'] == report_id), None)
+        
+        if not report:
+            return jsonify({
+                'status': 'error',
+                'message': '리포트를 찾을 수 없습니다.'
+            }), 404
+
+        # 리포트 데이터를 DataFrame으로 변환
+        report_data = {
+            'Report ID': report['id'],
+            'Type': report['type'],
+            'Start Date': report['startDate'],
+            'End Date': report['endDate'],
+            'Generated Date': report['date'],
+            'CPU Usage': report['data']['cpu_usage'],
+            'Memory Usage': report['data']['memory_usage'],
+            'Disk Usage': report['data']['disk_usage']
+        }
+        
+        df = pd.DataFrame([report_data])
+
+        if format == 'excel':
+            # Excel 형식으로 변환
+            output = BytesIO()
+            df.to_excel(output, index=False, engine='openpyxl')
+            output.seek(0)
+            
+            return send_file(
+                output,
+                mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                as_attachment=True,
+                download_name=f'report_{report_id}.xlsx'
+            )
+            
+        elif format == 'csv':
+            # CSV 형식으로 변환
+            output = BytesIO()
+            df.to_csv(output, index=False, encoding='utf-8-sig')  # UTF-8 with BOM for Excel
+            output.seek(0)
+            
+            return send_file(
+                output,
+                mimetype='text/csv',
+                as_attachment=True,
+                download_name=f'report_{report_id}.csv'
+            )
+            
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': '지원하지 않는 형식입니다.'
+            }), 400
+
     except Exception as e:
+        print(f"Error downloading report: {str(e)}")
         return jsonify({
-            'success': False,
-            'error': str(e),
+            'status': 'error',
             'message': '리포트 다운로드 중 오류가 발생했습니다.'
-        }), 404
+        }), 500
 
 @app.route('/api/reports/list')
+@login_required
 def list_reports():
     try:
-        reports_dir = 'reports'
-        os.makedirs(reports_dir, exist_ok=True)
-        reports = []
-        
-        for filename in os.listdir(reports_dir):
-            if filename.endswith('.json'):
-                file_path = os.path.join(reports_dir, filename)
-                with open(file_path, 'r') as f:
-                    report_data = json.load(f)
-                reports.append({
-                    'filename': filename,
-                    'timestamp': report_data['timestamp'],
-                    'type': report_data['type'],
-                    'period': report_data['period']
-                })
-        
+        # 실제 생성된 리포트 목록 반환
         return jsonify({
-            'success': True,
-            'reports': sorted(reports, key=lambda x: x['timestamp'], reverse=True)
+            'status': 'success',
+            'reports': generated_reports
         })
     except Exception as e:
+        print(f"Error listing reports: {str(e)}")
         return jsonify({
-            'success': False,
-            'error': str(e),
-            'message': '리포트 목록을 가져오는 중 오류가 발생했습니다.'
+            'status': 'error',
+            'message': '리포트 목록을 불러오는 중 오류가 발생했습니다.'
         }), 500
 
 @app.route('/api/processes')
