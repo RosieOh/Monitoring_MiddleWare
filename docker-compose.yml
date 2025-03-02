@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "5001:5001"
+    volumes:
+      - .:/app
+    environment:
+      - FLASK_ENV=production
+      - FLASK_APP=app.py
+      - SECRET_KEY=your-secret-key-here  # 실제 운영환경에서는 안전한 키로 변경
+    restart: always
+    command: gunicorn --worker-class eventlet -w 1 -b 0.0.0.0:5001 app:app 
