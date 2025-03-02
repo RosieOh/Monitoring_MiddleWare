@@ -1,136 +1,140 @@
-document.addEventListener('DOMContentLoaded', function() {
-    const reportList = document.getElementById('reportList');
-    const generateReportBtn = document.getElementById('generateReport');
-    const startDateInput = document.getElementById('startDate');
-    const endDateInput = document.getElementById('endDate');
-    const reportTypeSelect = document.getElementById('reportType');
+// CSRF 토큰을 가져오는 함수
+function getCsrfToken() {
+    return document.querySelector('input[name="csrf_token"]').value;
+}
 
-    // 날짜 입력 필드 초기값 설정
-    const now = new Date();
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    startDateInput.value = sevenDaysAgo.toISOString().split('T')[0];
-    endDateInput.value = now.toISOString().split('T')[0];
+// 리포트 생성 함수
+function generateReport() {
+    console.log('Generating Report...'); // 함수 실행 확인
+    
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    const reportType = document.getElementById('reportType').value;
 
-    function loadReports() {
-        fetch('/api/reports/list')
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    reportList.innerHTML = data.reports.map(report => {
-                        const baseFilename = report.filename.split('.')[0];
-                        return `
-                            <div class="bg-white p-6 rounded-lg shadow mb-4">
-                                <div class="flex justify-between items-center">
-                                    <div>
-                                        <h3 class="text-lg font-medium text-gray-900">
-                                            ${report.type} 리포트
-                                        </h3>
-                                        <p class="text-sm text-gray-500">
-                                            생성일: ${new Date(report.timestamp).toLocaleString()}
-                                        </p>
-                                        <p class="text-sm text-gray-500">
-                                            기간: ${new Date(report.period.start).toLocaleDateString()} - 
-                                                  ${new Date(report.period.end).toLocaleDateString()}
-                                        </p>
-                                    </div>
-                                    <div class="flex space-x-2">
-                                        <a href="/api/reports/download/${baseFilename}.json" 
-                                           class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                                            JSON
-                                        </a>
-                                        <a href="/api/reports/download/${baseFilename}.xlsx" 
-                                           class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                                            Excel
-                                        </a>
-                                        <button onclick="deleteReport('${baseFilename}')"
-                                                class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
-                                            삭제
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
-                } else {
-                    reportList.innerHTML = '<p class="text-gray-500">리포트가 없습니다.</p>';
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                reportList.innerHTML = '<p class="text-red-500">리포트 목록을 불러오는데 실패했습니다.</p>';
-            });
+    console.log('Input values:', { startDate, endDate, reportType }); // 입력값 확인
+
+    if (!startDate || !endDate) {
+        alert('시작 날짜와 종료 날짜를 선택해주세요.');
+        return;
     }
 
-    generateReportBtn.addEventListener('click', function() {
-        // 버튼 비활성화 및 로딩 상태 표시
-        this.disabled = true;
-        const originalText = this.textContent;
-        this.textContent = '생성 중...';
-
-        const data = {
-            start_date: startDateInput.value,
-            end_date: endDateInput.value,
-            type: reportTypeSelect.value
-        };
-
-        fetch('/api/reports/generate', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data)
+    fetch('/api/reports/generate', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify({
+            startDate: startDate,
+            endDate: endDate,
+            type: reportType
         })
-        .then(response => response.json())
-        .then(result => {
-            if (result.success) {
-                alert('리포트가 생성되었습니다.');
-                loadReports();  // 리포트 목록 새로고침
-            } else {
-                alert('리포트 생성 실패: ' + (result.message || '알 수 없는 오류가 발생했습니다.'));
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('리포트 생성 중 오류가 발생했습니다.');
-        })
-        .finally(() => {
-            // 버튼 상태 복원
-            this.disabled = false;
-            this.textContent = originalText;
-        });
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Response data:', data); // 응답 데이터 확인
+        if (data.status === 'success') {
+            alert('리포트가 생성되었습니다.');
+            loadReports(); // 목록 새로고침
+        } else {
+            alert('리포트 생성 실패: ' + (data.message || '알 수 없는 오류가 발생했습니다.'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('리포트 생성 중 오류가 발생했습니다.');
     });
-
-    // 초기 리포트 목록 로드
-    loadReports();
-});
+}
 
 // 리포트 다운로드 함수
-async function downloadReport(reportId) {
-    try {
-        const response = await fetch(`/api/reports/${reportId}/download`);
-        if (!response.ok) {
-            throw new Error('리포트 다운로드 실패');
+function downloadReport(reportId, format) {
+    fetch(`/api/reports/download/${reportId}/${format}`, {
+        headers: {
+            'X-CSRFToken': getCsrfToken()
         }
-
-        const blob = await response.blob();
+    })
+    .then(response => response.blob())
+    .then(blob => {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `report_${reportId}.csv`;
+        a.download = `report_${reportId}.${format}`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         a.remove();
-    } catch (error) {
+    })
+    .catch(error => {
         console.error('Error:', error);
-        alert('리포트 다운로드에 실패했습니다.');
-    }
+        alert('리포트 다운로드 중 오류가 발생했습니다.');
+    });
 }
+
+// 리포트 목록 로드 함수
+function loadReports() {
+    fetch('/api/reports/list', {
+        headers: {
+            'X-CSRFToken': getCsrfToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Server response:', data); // 디버깅용
+        const reportList = document.getElementById('reportList');
+        const reports = data.reports || []; // data.reports 배열 사용
+        
+        if (reports.length > 0) {
+            reportList.innerHTML = reports.map(report => `
+                <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <div>
+                        <h3 class="font-medium text-gray-900">${report.title}</h3>
+                        <p class="text-sm text-gray-500">${report.date}</p>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button onclick="downloadReport('${report.id}', 'csv')" 
+                                class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+                            CSV
+                        </button>
+                        <button onclick="downloadReport('${report.id}', 'excel')" 
+                                class="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors">
+                            Excel
+                        </button>
+                        <button onclick="deleteReport('${report.id}')" 
+                                class="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors">
+                            삭제
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            reportList.innerHTML = '<p class="text-center text-gray-500 py-4">생성된 리포트가 없습니다.</p>';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('reportList').innerHTML = 
+            '<p class="text-center text-red-500 py-4">리포트 목록을 불러오는 중 오류가 발생했습니다.</p>';
+    });
+}
+
+// 이벤트 리스너 등록
+document.addEventListener('DOMContentLoaded', function() {
+    const generateReportBtn = document.getElementById('generateReportBtn');
+    if (generateReportBtn) {
+        generateReportBtn.addEventListener('click', generateReport);
+    }
+    
+    // 초기 리포트 목록 로드
+    loadReports();
+});
 
 function deleteReport(filename) {
     if (confirm('이 리포트를 삭제하시겠습니까?')) {
         fetch(`/api/reports/delete/${filename}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': getCsrfToken()
+            }
         })
         .then(response => response.json())
         .then(result => {
